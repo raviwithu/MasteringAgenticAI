@@ -11,14 +11,16 @@ Layout:
 
 from __future__ import annotations
 
+import json
+
 import streamlit as st
 import streamlit.components.v1 as components
 
 from threat_model.llm_client import active_mode, generate_threat_model
 from threat_model.prompts import build_threat_model_prompt
 from threat_model.report import (
+    attack_path_from_markdown,
     create_markdown_report,
-    extract_mermaid_blocks,
     report_filename,
     save_report,
 )
@@ -59,16 +61,34 @@ def clear_fields() -> None:
 
 
 def render_mermaid(code: str, height: int = 360) -> None:
-    """Render a Mermaid diagram in-app via the Mermaid.js CDN."""
+    """Render a Mermaid diagram in-app via the Mermaid.js CDN.
+
+    Uses the explicit ``mermaid.render()`` API (more reliable than
+    ``startOnLoad`` for dynamically injected content) and shows the parse error
+    in-place if the diagram is malformed, so failures are never silent.
+    """
+    code_json = json.dumps(code)  # safely embed arbitrary text into the script
     components.html(
         f"""
-        <div class="mermaid">{code}</div>
+        <div id="diagram">Rendering diagram…</div>
         <script type="module">
           import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-          mermaid.initialize({{ startOnLoad: true, theme: 'default' }});
+          mermaid.initialize({{ startOnLoad: false, theme: 'default', securityLevel: 'loose' }});
+          const code = {code_json};
+          const el = document.getElementById('diagram');
+          try {{
+            const {{ svg }} = await mermaid.render('attackPath', code);
+            el.innerHTML = svg;
+          }} catch (err) {{
+            el.innerHTML =
+              '<pre style="color:#c0392b;white-space:pre-wrap">' +
+              'Could not render Mermaid diagram:\\n' + (err && err.message) +
+              '</pre>';
+          }}
         </script>
         """,
         height=height,
+        scrolling=True,
     )
 
 
@@ -170,13 +190,17 @@ with tab_result:
     if not report_md:
         st.info("No threat model yet. Generate one from the **Input** tab.")
     else:
-        diagrams = extract_mermaid_blocks(report_md)
-        if diagrams:
-            st.subheader("Attack Path Diagram")
-            for diagram in diagrams:
-                render_mermaid(diagram)
-            st.caption("Rendered from the Mermaid block in the report below.")
-            st.divider()
+        diagram, is_fallback = attack_path_from_markdown(report_md)
+        st.subheader("Attack Path Diagram")
+        render_mermaid(diagram)
+        if is_fallback:
+            st.caption("ℹ️ The model did not include a diagram, so a generic "
+                       "attack path is shown. The full report is below.")
+        else:
+            st.caption("Parsed from the Mermaid block in the generated report below.")
+        with st.expander("Show diagram source (Mermaid)"):
+            st.code(diagram, language="text")
+        st.divider()
         st.markdown(report_md)
 
 # --------------------------------------------------------------------------- #

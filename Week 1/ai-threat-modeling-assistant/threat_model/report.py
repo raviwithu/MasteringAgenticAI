@@ -67,6 +67,64 @@ def extract_mermaid_blocks(markdown: str) -> list[str]:
     return [m.group(1).strip() for m in _MERMAID_RE.finditer(markdown or "")]
 
 
+def _node_label(text: str) -> str:
+    """Sanitize a node label so it is safe inside a Mermaid `[...]` node."""
+    # Mermaid breaks on unescaped brackets/quotes; keep labels simple.
+    text = re.sub(r"[\[\]\"|{}()<>]", " ", (text or "").strip())
+    text = re.sub(r"\s+", " ", text)
+    return text or "Node"
+
+
+def build_attack_path_diagram(steps: list[str]) -> str:
+    """Build a valid Mermaid `flowchart TD` from an ordered list of step labels.
+
+    Each step becomes a node (A, B, C, ...) linked to the next, giving a single
+    readable attack path from entry point to target. Returns the diagram body
+    *without* the surrounding ```mermaid fences.
+    """
+    labels = [_node_label(s) for s in (steps or []) if str(s).strip()]
+    if not labels:
+        labels = ["External Attacker", "Entry Point", "Target Asset"]
+
+    def node_id(i: int) -> str:
+        return chr(ord("A") + i) if i < 26 else f"N{i}"
+
+    lines = ["flowchart TD"]
+    if len(labels) == 1:
+        lines.append(f"    {node_id(0)}[{labels[0]}]")
+    else:
+        for i in range(len(labels) - 1):
+            lines.append(
+                f"    {node_id(i)}[{labels[i]}] --> "
+                f"{node_id(i + 1)}[{labels[i + 1]}]"
+            )
+    return "\n".join(lines)
+
+
+# A generic fallback attack path used when the model output contains no diagram.
+DEFAULT_ATTACK_PATH = [
+    "External Attacker",
+    "Cloud API",
+    "TCU (Cellular)",
+    "Vehicle Gateway",
+    "CAN Network",
+    "Target ECU",
+]
+
+
+def attack_path_from_markdown(markdown: str) -> tuple[str, bool]:
+    """Return ``(mermaid_body, is_generated)`` for the report's attack path.
+
+    Uses the first ```mermaid``` block in ``markdown`` if present; otherwise
+    builds a deterministic fallback diagram. ``is_generated`` is True when the
+    fallback was used (i.e. the model did not supply a diagram).
+    """
+    blocks = extract_mermaid_blocks(markdown)
+    if blocks:
+        return blocks[0], False
+    return build_attack_path_diagram(DEFAULT_ATTACK_PATH), True
+
+
 def report_filename(system_name: str | None = None) -> str:
     """Build a unique, descriptive ``.md`` filename for a report."""
     stamp = _utc_now().strftime("%Y%m%d-%H%M%S")
