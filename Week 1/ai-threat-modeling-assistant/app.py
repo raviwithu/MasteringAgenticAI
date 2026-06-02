@@ -1,18 +1,27 @@
 """AI Threat Modeling Assistant — Streamlit UI.
 
 Paste a system description (optionally with name, business impact, data handled,
-and external interfaces), click **Generate Threat Model**, and the app builds a
-prompt, calls the LLM (OpenAI or an offline mock), and renders + exports a
-structured Markdown threat model.
+and external interfaces), generate a structured automotive threat model (with a
+Mermaid attack-path diagram), and export it as Markdown.
+
+Layout:
+- Sidebar: instructions and the active LLM mode.
+- Tabs: Input · Generated Threat Model · Export.
 """
 
 from __future__ import annotations
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 from threat_model.llm_client import active_mode, generate_threat_model
 from threat_model.prompts import build_threat_model_prompt
-from threat_model.report import build_report, save_report
+from threat_model.report import (
+    create_markdown_report,
+    extract_mermaid_blocks,
+    report_filename,
+    save_report,
+)
 from threat_model.sample_data import SAMPLE_SYSTEM
 
 # --------------------------------------------------------------------------- #
@@ -24,8 +33,6 @@ st.set_page_config(
     layout="wide",
 )
 
-# Input fields are bound to session_state keys so the "Load Sample" button can
-# pre-fill them via a callback before the widgets render.
 _FIELD_DEFAULTS = {
     "system_name": "",
     "description": "",
@@ -51,112 +58,151 @@ def clear_fields() -> None:
     st.session_state["report_md"] = ""
 
 
+def render_mermaid(code: str, height: int = 360) -> None:
+    """Render a Mermaid diagram in-app via the Mermaid.js CDN."""
+    components.html(
+        f"""
+        <div class="mermaid">{code}</div>
+        <script type="module">
+          import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+          mermaid.initialize({{ startOnLoad: true, theme: 'default' }});
+        </script>
+        """,
+        height=height,
+    )
+
+
 # --------------------------------------------------------------------------- #
-# Sidebar
+# Sidebar — instructions
 # --------------------------------------------------------------------------- #
 with st.sidebar:
-    st.header("About")
-    st.write(
-        "Generate a structured **automotive product security** threat model from "
-        "a plain-language system description."
+    st.header("🛡️ How to use")
+    st.markdown(
+        "1. Open the **Input** tab.\n"
+        "2. Paste a **system description** (or click *Load Sample*).\n"
+        "3. Optionally add system name, business impact, data, interfaces.\n"
+        "4. Click **Generate Threat Model**.\n"
+        "5. Review the **Generated Threat Model** tab.\n"
+        "6. Download or save from the **Export** tab."
     )
+    st.divider()
     mode = active_mode()
     if mode == "mock":
-        st.info("**Mode:** offline mock LLM\n\nNo API key needed. Set "
-                "`OPENAI_API_KEY` and `USE_MOCK_LLM=false` in `.env` to use OpenAI.")
+        st.info("**LLM mode:** offline mock\n\nNo API key needed. Set "
+                "`OPENAI_API_KEY` and `USE_MOCK_LLM=false` in `.env` for OpenAI.")
     else:
-        st.success("**Mode:** OpenAI\n\nUsing your configured API key.")
-    st.caption("Sections: Overview · Assets · Trust Boundaries · Threats · "
-               "Attack Paths · Requirements · Test Cases · Assumptions · Residual Risks")
+        st.success("**LLM mode:** OpenAI\n\nUsing your configured API key.")
+    st.caption(
+        "Sections: Overview · Assets · Trust Boundaries · Threats · Attack Paths "
+        "(+ Mermaid diagram) · Requirements · Test Cases · Assumptions · "
+        "Residual Risks."
+    )
+    st.caption("⚠️ Output is a starting point for human review, not a formal "
+               "security assessment.")
 
 # --------------------------------------------------------------------------- #
 # Header
 # --------------------------------------------------------------------------- #
 st.title("🛡️ AI Threat Modeling Assistant")
-st.markdown(
-    "Describe a connected-vehicle system and get a structured threat model: "
-    "**assets, trust boundaries, threats (STRIDE), attack paths, security "
-    "requirements, and test cases** — exportable as Markdown."
+st.caption("Turn a connected-vehicle system description into a structured, "
+           "STRIDE-based threat model with an attack-path diagram.")
+
+tab_input, tab_result, tab_export = st.tabs(
+    ["📝 Input", "📊 Generated Threat Model", "📤 Export"]
 )
 
 # --------------------------------------------------------------------------- #
-# Inputs
+# Tab 1 — Input
 # --------------------------------------------------------------------------- #
-btn_sample, btn_clear, _ = st.columns([1, 1, 4])
-btn_sample.button(
-    "📋 Load Sample Vehicle Gateway System",
-    on_click=load_sample,
-    use_container_width=True,
-)
-btn_clear.button("🧹 Clear", on_click=clear_fields, use_container_width=True)
+with tab_input:
+    c1, c2, _ = st.columns([1, 1, 3])
+    c1.button("📋 Load Sample", on_click=load_sample, use_container_width=True)
+    c2.button("🧹 Clear", on_click=clear_fields, use_container_width=True)
 
-st.text_area(
-    "System description *",
-    key="description",
-    height=180,
-    placeholder="e.g. Vehicle Gateway communicates with TCU, Cloud API, Mobile "
-    "App, and in-vehicle ECUs over CAN/Ethernet. It supports remote commands, "
-    "telemetry upload, OTA status, and diagnostic access.",
-)
-
-with st.expander("Optional details (improve the result)", expanded=True):
-    col_a, col_b = st.columns(2)
-    col_a.text_input("System name", key="system_name",
-                     placeholder="Vehicle Gateway")
-    col_b.text_input("Data handled", key="data_handled",
-                     placeholder="Telemetry, GPS, diagnostics, command payloads")
-    col_c, col_d = st.columns(2)
-    col_c.text_input("Business impact", key="business_impact",
-                     placeholder="High — routes remote commands to ECUs")
-    col_d.text_input("External interfaces", key="external_interfaces",
-                     placeholder="TCU (cellular), Cloud API, Mobile App, CAN, OTA")
-
-generate = st.button("🚀 Generate Threat Model", type="primary",
-                     use_container_width=True)
-
-# --------------------------------------------------------------------------- #
-# Generate
-# --------------------------------------------------------------------------- #
-if generate:
-    if not st.session_state["description"].strip():
-        st.error("Please enter a system description before generating.")
-    else:
-        inputs = {key: st.session_state[key] for key in _FIELD_DEFAULTS}
-        with st.spinner("Analyzing system and generating threat model…"):
-            prompt = build_threat_model_prompt(
-                system_name=inputs["system_name"],
-                description=inputs["description"],
-                business_impact=inputs["business_impact"],
-                data_handled=inputs["data_handled"],
-                external_interfaces=inputs["external_interfaces"],
-            )
-            raw = generate_threat_model(prompt, system_inputs=inputs)
-            st.session_state["report_md"] = build_report(
-                raw, inputs["system_name"]
-            )
-
-# --------------------------------------------------------------------------- #
-# Output
-# --------------------------------------------------------------------------- #
-report_md = st.session_state.get("report_md", "")
-if report_md:
-    st.divider()
-    st.subheader("Generated Threat Model")
-
-    name = st.session_state["system_name"].strip() or "threat-model"
-    dl_col, save_col = st.columns([1, 3])
-    dl_col.download_button(
-        "⬇️ Download .md",
-        data=report_md,
-        file_name=f"{name.lower().replace(' ', '-')}-threat-model.md",
-        mime="text/markdown",
-        use_container_width=True,
+    st.text_area(
+        "System description *",
+        key="description",
+        height=170,
+        placeholder="e.g. Vehicle Gateway communicates with TCU, Cloud API, "
+        "Mobile App, and in-vehicle ECUs over CAN/Ethernet. It supports remote "
+        "commands, telemetry upload, OTA status, and diagnostic access.",
     )
-    if save_col.button("💾 Save to outputs/", use_container_width=False):
-        try:
-            path = save_report(report_md, st.session_state["system_name"])
-            st.success(f"Saved to `{path}`")
-        except OSError as exc:
-            st.warning(f"Could not save report: {exc}")
 
-    st.markdown(report_md)
+    with st.expander("Optional details (improve the result)", expanded=True):
+        col_a, col_b = st.columns(2)
+        col_a.text_input("System name", key="system_name",
+                         placeholder="Vehicle Gateway")
+        col_b.text_input("Data handled", key="data_handled",
+                         placeholder="Telemetry, GPS, diagnostics, command payloads")
+        col_c, col_d = st.columns(2)
+        col_c.text_input("Business impact", key="business_impact",
+                         placeholder="High — routes remote commands to ECUs")
+        col_d.text_input("External interfaces", key="external_interfaces",
+                         placeholder="TCU (cellular), Cloud API, Mobile App, CAN, OTA")
+
+    if st.button("🚀 Generate Threat Model", type="primary",
+                 use_container_width=True):
+        if not st.session_state["description"].strip():
+            st.error("Please enter a system description before generating.")
+        else:
+            inputs = {key: st.session_state[key] for key in _FIELD_DEFAULTS}
+            with st.spinner("Analyzing system and generating threat model…"):
+                prompt = build_threat_model_prompt(
+                    system_name=inputs["system_name"],
+                    description=inputs["description"],
+                    business_impact=inputs["business_impact"],
+                    data_handled=inputs["data_handled"],
+                    external_interfaces=inputs["external_interfaces"],
+                )
+                raw = generate_threat_model(prompt, system_inputs=inputs)
+                st.session_state["report_md"] = create_markdown_report(
+                    inputs["system_name"], raw
+                )
+            st.success("Threat model generated! Open the "
+                       "**Generated Threat Model** tab to review it.")
+            st.balloons()
+
+# --------------------------------------------------------------------------- #
+# Tab 2 — Generated Threat Model
+# --------------------------------------------------------------------------- #
+with tab_result:
+    report_md = st.session_state.get("report_md", "")
+    if not report_md:
+        st.info("No threat model yet. Generate one from the **Input** tab.")
+    else:
+        diagrams = extract_mermaid_blocks(report_md)
+        if diagrams:
+            st.subheader("Attack Path Diagram")
+            for diagram in diagrams:
+                render_mermaid(diagram)
+            st.caption("Rendered from the Mermaid block in the report below.")
+            st.divider()
+        st.markdown(report_md)
+
+# --------------------------------------------------------------------------- #
+# Tab 3 — Export
+# --------------------------------------------------------------------------- #
+with tab_export:
+    report_md = st.session_state.get("report_md", "")
+    if not report_md:
+        st.info("Nothing to export yet. Generate a threat model first.")
+    else:
+        system_name = st.session_state["system_name"]
+        fname = report_filename(system_name)
+        st.download_button(
+            "⬇️ Download Markdown (.md)",
+            data=report_md,
+            file_name=fname,
+            mime="text/markdown",
+            use_container_width=True,
+        )
+        if st.button("💾 Save to outputs/ folder", use_container_width=True):
+            try:
+                path = save_report(report_md, system_name)
+                st.success(f"Saved to `{path}`")
+            except OSError as exc:
+                st.error(f"Could not save report: {exc}")
+
+        st.divider()
+        st.caption("Preview of the Markdown that will be exported:")
+        st.code(report_md, language="markdown")

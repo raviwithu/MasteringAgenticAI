@@ -155,6 +155,16 @@ OTA functionality.
 3. **Diagnostics abuse (physical/near-field) (T4):** attacker with OBD-II or BLE proximity opens a UDS session → weak seed/key unlock → reads keys or writes ECU memory.
 4. **Telemetry interception (T3):** attacker on a hostile network downgrades/inspects TLS → harvests location and identifiers for tracking or correlation.
 
+```mermaid
+flowchart TD
+    A[External Attacker] --> B[Mobile App / Stolen Token]
+    B --> C[Cloud API]
+    C --> D[TCU - Cellular]
+    D --> E[Vehicle Gateway]
+    E --> F[CAN Network]
+    F --> G[Target ECU]
+```
+
 ## Security Requirements
 - **SR1 (T1, T7):** Mutually authenticate cloud↔TCU and enforce per-command authorization with short-lived, scoped tokens.
 - **SR2 (T2):** Verify OTA images with code signing **and** anti-rollback (monotonic version counters) before install.

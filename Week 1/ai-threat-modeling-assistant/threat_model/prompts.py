@@ -94,7 +94,20 @@ report). Use these sections, in this exact order, each as a level-2 heading (`##
   Reference concrete automotive interfaces (cellular, Bluetooth/BLE, Wi-Fi, CAN,
   Automotive Ethernet, OBD-II/diagnostics, OTA) where useful.
 - **Attack Paths** — 2–4 realistic multi-step paths (numbered steps) showing how an
-  attacker chains threats from an entry point to an asset.
+  attacker chains threats from an entry point to an asset. **Then include one
+  simple Mermaid attack-path diagram** based on the system description, using a
+  `flowchart TD` from the external entry point through intermediate components to
+  the target asset. Use this exact fenced format:
+
+  ```mermaid
+  flowchart TD
+      A[External Attacker] --> B[Cloud API]
+      B --> C[Vehicle Gateway]
+      C --> D[CAN Network]
+      D --> E[Target ECU]
+  ```
+
+  Adapt the node labels to the actual system. Keep it to a single, readable path.
 - **Security Requirements** — concrete, testable controls mapped back to threat IDs.
 - **Security Test Cases** — a Markdown table: ID | Linked Requirement/Threat |
   Test objective | Expected result. Use IDs like TC1, TC2, ...

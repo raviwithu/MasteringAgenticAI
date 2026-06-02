@@ -6,7 +6,12 @@ the Streamlit app (``app.py``).
 
 from .prompts import SECTION_ORDER, build_threat_model_prompt
 from .llm_client import active_mode, generate_threat_model
-from .report import build_report, save_report
+from .report import (
+    build_report,
+    create_markdown_report,
+    extract_mermaid_blocks,
+    save_report,
+)
 from .sample_data import SAMPLE_SYSTEM
 
 __all__ = [
@@ -15,6 +20,8 @@ __all__ = [
     "active_mode",
     "generate_threat_model",
     "build_report",
+    "create_markdown_report",
+    "extract_mermaid_blocks",
     "save_report",
     "SAMPLE_SYSTEM",
 ]
