@@ -63,8 +63,12 @@ ai-threat-modeling-assistant/
 │   ├── report.py           # create_markdown_report(...) / save_report(...) / mermaid
 │   └── sample_data.py      # SAMPLE_SYSTEM
 ├── tests/                  # automated functional flow tests (pytest)
+├── docs/                   # build documentation
 └── outputs/                # exported reports (gitignored)
 ```
+
+📄 See [docs/BUILD.md](docs/BUILD.md) for the build writeup — overview, data used,
+prompts, iterations, and learnings.
 
 ## Setup
 
