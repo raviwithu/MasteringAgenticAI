@@ -1,11 +1,19 @@
 # Mastering Agentic AI
 
-A minimal **Python project skeleton** for building agentic AI labs — LLM apps,
-tool-using agents, and RAG pipelines. It bundles a curated dependency set, an
-environment-variable template, lint config, and CI so you can start coding fast.
+A workspace for building agentic AI labs — LLM apps, tool-using agents, and RAG
+pipelines. It bundles a curated dependency set, an environment-variable template,
+lint config, and CI, plus week-by-week hands-on projects.
 
 > The full Dev Container that provisions Python and these dependencies lives in
 > the surrounding workspace, not in this repo.
+
+---
+
+## Projects
+
+| Week | Project | Description |
+|------|---------|-------------|
+| 1 | [AI Threat Modeling Assistant](Week%201/ai-threat-modeling-assistant/) | Streamlit app that turns a system description into a structured automotive threat model (assets, trust boundaries, STRIDE threats, attack paths + Mermaid diagram, requirements, test cases) with Markdown export. Runs offline (mock) or against OpenAI. |
 
 ---
 
@@ -39,6 +47,8 @@ python -c "import anthropic, openai, langchain, langgraph, crewai; print('OK')"
 
 ```
 .
+├── Week 1/                # hands-on projects
+│   └── ai-threat-modeling-assistant/
 ├── .github/workflows/     # CI: lints Python with ruff
 ├── .env.example           # API-key template (copy to .env)
 ├── requirements.txt       # Python dependencies
