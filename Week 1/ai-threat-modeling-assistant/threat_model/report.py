@@ -194,11 +194,10 @@ def build_attack_path_diagram(steps: list[str]) -> str:
 # A generic fallback attack path used when the model output contains no diagram.
 DEFAULT_ATTACK_PATH = [
     "External Attacker",
-    "Cloud API",
-    "TCU (Cellular)",
-    "Vehicle Gateway",
-    "CAN Network",
-    "Target ECU",
+    "Web Frontend",
+    "API Gateway",
+    "Application Server",
+    "Database",
 ]
 
 

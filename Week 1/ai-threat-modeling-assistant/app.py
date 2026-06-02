@@ -1,8 +1,8 @@
 """AI Threat Modeling Assistant — Streamlit UI.
 
 Paste a system description (optionally with name, business impact, data handled,
-and external interfaces), generate a structured automotive threat model (with a
-Mermaid attack-path diagram), and export it as Markdown.
+and external interfaces), generate a structured threat model (with an attack-path
+diagram), and export it as Markdown.
 
 Layout:
 - Sidebar: instructions and the active LLM mode.
@@ -48,7 +48,7 @@ st.session_state.setdefault("report_md", "")
 
 
 def load_sample() -> None:
-    """Populate the input fields with the sample Vehicle Gateway system."""
+    """Populate the input fields with the sample system."""
     for key in _FIELD_DEFAULTS:
         st.session_state[key] = SAMPLE_SYSTEM.get(key, "")
 
@@ -102,7 +102,7 @@ with st.sidebar:
 # --------------------------------------------------------------------------- #
 st.title("🛡️ AI Threat Modeling Assistant")
 st.markdown(
-    "**This tool turns a plain-language description of a connected-vehicle system "
+    "**This tool turns a plain-language description of any software system "
     "into a structured security threat model.** It identifies assets, trust "
     "boundaries, STRIDE threats, attack paths (with a diagram), security "
     "requirements, and test cases — ready to review and export as Markdown."
@@ -150,22 +150,23 @@ with tab_input:
         "System description *",
         key="description",
         height=170,
-        placeholder="e.g. Vehicle Gateway communicates with TCU, Cloud API, "
-        "Mobile App, and in-vehicle ECUs over CAN/Ethernet. It supports remote "
-        "commands, telemetry upload, OTA status, and diagnostic access.",
+        placeholder="e.g. A customer web portal with a single-page frontend, a "
+        "REST API, and a database. Users sign up, log in, and place orders. The "
+        "backend integrates with a third-party payment provider and an email "
+        "service, and admins use a separate console.",
     )
 
     with st.expander("Optional details (improve the result)", expanded=True):
         col_a, col_b = st.columns(2)
         col_a.text_input("System name", key="system_name",
-                         placeholder="Vehicle Gateway")
+                         placeholder="Customer Web Portal")
         col_b.text_input("Data handled", key="data_handled",
-                         placeholder="Telemetry, GPS, diagnostics, command payloads")
+                         placeholder="Credentials, PII, orders, payment tokens")
         col_c, col_d = st.columns(2)
         col_c.text_input("Business impact", key="business_impact",
-                         placeholder="High — routes remote commands to ECUs")
+                         placeholder="High — handles customer data and payments")
         col_d.text_input("External interfaces", key="external_interfaces",
-                         placeholder="TCU (cellular), Cloud API, Mobile App, CAN, OTA")
+                         placeholder="Web/API clients, payment gateway, email, database")
 
     if st.button("🚀 Generate Threat Model", type="primary",
                  use_container_width=True):

@@ -1,23 +1,26 @@
-"""Sample automotive system used by the 'Load Sample' button in the app."""
+"""Sample system used by the 'Load Sample' button in the app."""
 
 SAMPLE_SYSTEM = {
-    "system_name": "Vehicle Gateway",
+    "system_name": "Customer Web Portal",
     "description": (
-        "Vehicle Gateway communicates with TCU, Cloud API, Mobile App, and "
-        "in-vehicle ECUs over CAN/Ethernet. It supports remote commands, "
-        "telemetry upload, OTA status, and diagnostic access."
+        "A customer-facing web application with a single-page frontend, a REST "
+        "API backend, and a relational database. Users sign up and log in, manage "
+        "their profile, and place orders. The backend integrates with a "
+        "third-party payment provider and an email service, and stores data in a "
+        "managed cloud database. Admin staff use a separate admin console."
     ),
     "business_impact": (
-        "High — the gateway routes remote commands toward in-vehicle ECUs and "
-        "brokers cloud connectivity. A compromise could affect vehicle safety, "
-        "customer privacy, fleet availability, and brand trust."
+        "High — the portal handles customer accounts, personal data, and "
+        "payments. A compromise could lead to data breach, financial fraud, "
+        "regulatory penalties, and loss of customer trust."
     ),
     "data_handled": (
-        "Vehicle telemetry, GPS location, diagnostic trouble codes, remote "
-        "command payloads, OTA metadata/status, and vehicle/user identifiers."
+        "User credentials and sessions, personal profile data (PII), order "
+        "history, and payment references/tokens (no raw card data stored)."
     ),
     "external_interfaces": (
-        "TCU (cellular), Cloud API (HTTPS), Mobile App (BLE + cloud), in-vehicle "
-        "CAN bus, Automotive Ethernet, OBD-II diagnostics, and the OTA update channel."
+        "Web browser clients (HTTPS), public REST API, admin console, "
+        "third-party payment gateway, transactional email provider, and a "
+        "managed cloud database."
     ),
 }

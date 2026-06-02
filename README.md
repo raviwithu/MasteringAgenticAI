@@ -13,7 +13,7 @@ lint config, and CI, plus week-by-week hands-on projects.
 
 | Week | Project | Description |
 |------|---------|-------------|
-| 1 | [AI Threat Modeling Assistant](Week%201/ai-threat-modeling-assistant/) | Streamlit app that turns a system description into a structured automotive threat model (assets, trust boundaries, STRIDE threats, attack paths + Mermaid diagram, requirements, test cases) with Markdown export. Runs offline (mock) or against OpenAI. |
+| 1 | [AI Threat Modeling Assistant](Week%201/ai-threat-modeling-assistant/) | Streamlit app that turns a system description into a structured threat model (assets, trust boundaries, STRIDE threats, attack paths + diagram, requirements, test cases) with Markdown export. Runs offline (mock) or against OpenAI. |
 
 ---
 

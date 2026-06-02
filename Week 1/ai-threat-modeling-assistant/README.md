@@ -1,7 +1,7 @@
 # 🛡️ AI Threat Modeling Assistant
 
 An AI-native Streamlit app that turns a plain-language **system description** into
-a structured **threat model** for connected-vehicle systems — complete with a
+a structured **threat model** for any software system — complete with a
 Mermaid **attack-path diagram** and one-click Markdown export.
 
 It runs out of the box in an **offline mock mode** (no API key required) or
@@ -17,9 +17,9 @@ threat model covering assets, trust boundaries, threats, attack paths, security
 requirements, and test cases. The output is a starting point for human review —
 not a replacement for a formal security assessment.
 
-The domain focus is **automotive product security** (TCU, vehicle gateway, ECUs,
-cloud API, mobile app, OTA, diagnostics, CAN/Automotive Ethernet), aligned in
-spirit with ISO/SAE 21434 and UNECE R155.
+It works for a broad range of systems — web and mobile apps, APIs and
+microservices, cloud and on-prem infrastructure, data stores, and IoT/embedded
+devices — and applies established practice (STRIDE, OWASP, NIST).
 
 ## Features
 
@@ -30,7 +30,7 @@ spirit with ISO/SAE 21434 and UNECE R155.
   Attack Paths · Security Requirements · Security Test Cases · Assumptions ·
   Residual Risks.
 - 🔀 **Mermaid attack-path diagram** rendered in-app and embedded in the report.
-- 📋 **Load Sample Vehicle Gateway System** to try it instantly.
+- 📋 **Load Sample** system to try it instantly.
 - 📤 Export: **Download .md** or **Save to `outputs/`**.
 - 📥 **Import** a previously exported `.md` report to re-view, re-render its
   diagram, and re-export — the system name is recovered automatically.
@@ -45,7 +45,7 @@ spirit with ISO/SAE 21434 and UNECE R155.
 | UI | Streamlit |
 | LLM | OpenAI API (or built-in offline mock) |
 | Config | python-dotenv, pydantic |
-| Diagrams | Mermaid.js (rendered via CDN) |
+| Diagrams | Graphviz in-app (`st.graphviz_chart`); Mermaid in the exported Markdown |
 | Export | Markdown |
 
 ## Project structure
@@ -101,23 +101,23 @@ The sidebar shows which mode is active.
 
 ## Example use case
 
-> **Connected Vehicle Gateway.** A security engineer is reviewing a gateway that
-> bridges the cloud, the mobile app, and the in-vehicle CAN bus. They paste the
-> architecture, click generate, and immediately get: the key assets (remote
-> command channel, OTA mechanism, keys), the trust boundaries (cloud↔TCU,
-> gateway↔CAN), a STRIDE threat table, an attack path (stolen mobile token →
-> cloud API → TCU → gateway → CAN → ECU) visualized as a Mermaid diagram, plus
-> mapped security requirements and test cases — then exports it to Markdown for
-> the design review.
+> **Customer Web Portal.** A security engineer is reviewing a web app with a
+> single-page frontend, a REST API, a database, and a third-party payment
+> integration. They paste the architecture, click generate, and immediately get:
+> the key assets (credentials, PII, secrets, database), the trust boundaries
+> (internet↔frontend, app↔database, service↔third-party), a STRIDE threat table,
+> an attack path (stolen token → frontend → API → app server → database)
+> visualized as a diagram, plus mapped security requirements and test cases —
+> then exports it to Markdown for the design review.
 
 ## Future improvements
 
-- Per-threat risk scoring (e.g. CVSS / automotive risk rating) and sortable tables.
+- Per-threat risk scoring (e.g. CVSS / DREAD) and sortable tables.
 - Multiple diagram types (data-flow diagram with trust boundaries, not just attack paths).
 - Support for additional providers (Anthropic, Google) behind the same client.
 - Persist and compare threat models across revisions of a system.
 - Export to PDF/HTML and DOCX in addition to Markdown.
-- Library of reusable system templates beyond the vehicle gateway.
+- Library of reusable system templates (web app, API, mobile, IoT, cloud).
 
 ## Demo script
 
@@ -125,8 +125,8 @@ A 60-second walkthrough:
 
 1. **Open the app** — `streamlit run app.py`. Point out the sidebar instructions
    and the **LLM mode** badge (mock by default — no key needed).
-2. **Load the sample** — Input tab → **Load Sample** fills in the Vehicle Gateway
-   system. Mention the optional fields that sharpen the result.
+2. **Load the sample** — Input tab → **Load Sample** fills in the Customer Web
+   Portal system. Mention the optional fields that sharpen the result.
 3. **Generate** — click **Generate Threat Model**; the spinner runs and a success
    message appears.
 4. **Review** — Generated Threat Model tab: scroll through the 9 sections, then
