@@ -1,0 +1,48 @@
+name: CI
+
+# Validate the pre-read notebooks on every push / PR:
+#   1. lint the embedded code with ruff
+#   2. actually EXECUTE every notebook to prove the toy demos run anywhere
+#      (they only need numpy + matplotlib — no API keys, no heavy frameworks).
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  notebooks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install lightweight notebook deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install jupyter nbconvert nbclient ipykernel numpy matplotlib ruff
+
+      - name: Lint notebook code with ruff
+        run: ruff check --output-format=github .
+
+      - name: Execute every notebook (headless)
+        env:
+          MPLBACKEND: Agg
+        run: |
+          shopt -s globstar nullglob
+          status=0
+          for nb in **/*.ipynb; do
+            echo "::group::Executing $nb"
+            if ! jupyter nbconvert --to notebook --execute --stdout \
+                 --ExecutePreprocessor.timeout=120 "$nb" > /dev/null; then
+              echo "::error file=$nb::notebook failed to execute"
+              status=1
+            fi
+            echo "::endgroup::"
+          done
+          exit $status

@@ -1,0 +1,12 @@
+# Lint config for the pre-read notebooks.
+#
+# These notebooks contain intentional *teaching* code (e.g. a sandboxed `eval`
+# in the ReAct demo, per-cell `import numpy as np` so each cell stands alone).
+# We therefore lint only for genuine errors — syntax problems and undefined
+# names — rather than style, so CI catches real breakage without false alarms.
+target-version = "py312"
+
+[lint]
+# Pyflakes "real bug" subset: syntax errors (E9), invalid f-strings / test
+# constructs (F63, F7), and undefined names (F82).
+select = ["E9", "F63", "F7", "F82"]
