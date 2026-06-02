@@ -12,8 +12,10 @@ from .report import (
     build_report,
     create_markdown_report,
     extract_mermaid_blocks,
+    mermaid_to_dot,
     parse_report,
     save_report,
+    strip_mermaid_blocks,
 )
 from .sample_data import SAMPLE_SYSTEM
 
@@ -27,7 +29,9 @@ __all__ = [
     "build_report",
     "create_markdown_report",
     "extract_mermaid_blocks",
+    "mermaid_to_dot",
     "parse_report",
     "save_report",
+    "strip_mermaid_blocks",
     "SAMPLE_SYSTEM",
 ]

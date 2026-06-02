@@ -11,19 +11,18 @@ Layout:
 
 from __future__ import annotations
 
-import json
-
 import streamlit as st
-import streamlit.components.v1 as components
 
 from threat_model.llm_client import active_mode, generate_threat_model
 from threat_model.prompts import build_threat_model_prompt
 from threat_model.report import (
     attack_path_from_markdown,
     create_markdown_report,
+    mermaid_to_dot,
     parse_report,
     report_filename,
     save_report,
+    strip_mermaid_blocks,
 )
 from threat_model.sample_data import SAMPLE_SYSTEM
 
@@ -59,38 +58,6 @@ def clear_fields() -> None:
     for key in _FIELD_DEFAULTS:
         st.session_state[key] = ""
     st.session_state["report_md"] = ""
-
-
-def render_mermaid(code: str, height: int = 360) -> None:
-    """Render a Mermaid diagram in-app via the Mermaid.js CDN.
-
-    Uses the explicit ``mermaid.render()`` API (more reliable than
-    ``startOnLoad`` for dynamically injected content) and shows the parse error
-    in-place if the diagram is malformed, so failures are never silent.
-    """
-    code_json = json.dumps(code)  # safely embed arbitrary text into the script
-    components.html(
-        f"""
-        <div id="diagram">Rendering diagram…</div>
-        <script type="module">
-          import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-          mermaid.initialize({{ startOnLoad: false, theme: 'default', securityLevel: 'loose' }});
-          const code = {code_json};
-          const el = document.getElementById('diagram');
-          try {{
-            const {{ svg }} = await mermaid.render('attackPath', code);
-            el.innerHTML = svg;
-          }} catch (err) {{
-            el.innerHTML =
-              '<pre style="color:#c0392b;white-space:pre-wrap">' +
-              'Could not render Mermaid diagram:\\n' + (err && err.message) +
-              '</pre>';
-          }}
-        </script>
-        """,
-        height=height,
-        scrolling=True,
-    )
 
 
 # --------------------------------------------------------------------------- #
@@ -219,16 +186,18 @@ with tab_result:
     else:
         diagram, is_fallback = attack_path_from_markdown(report_md)
         st.subheader("Attack Path Diagram")
-        render_mermaid(diagram)
+        st.graphviz_chart(mermaid_to_dot(diagram), use_container_width=True)
         if is_fallback:
             st.caption("ℹ️ The model did not include a diagram, so a generic "
-                       "attack path is shown. The full report is below.")
+                       "attack path is shown.")
         else:
-            st.caption("Parsed from the Mermaid block in the generated report below.")
+            st.caption("Parsed from the report's attack-path diagram.")
         with st.expander("Show diagram source (Mermaid)"):
             st.code(diagram, language="text")
         st.divider()
-        st.markdown(report_md)
+        # Hide the raw mermaid code block from the displayed body (it would show
+        # as plain text); the diagram is rendered above and kept in the export.
+        st.markdown(strip_mermaid_blocks(report_md))
 
 # --------------------------------------------------------------------------- #
 # Tab 3 — Export

@@ -22,6 +22,13 @@ _SYSTEM_ROW_RE = re.compile(r"^\|\s*\*\*System\*\*\s*\|\s*(.+?)\s*\|", re.MULTIL
 # Matches the "# Threat Model — <name>" title written by create_markdown_report.
 _TITLE_RE = re.compile(r"^#\s+Threat Model\s+[—-]\s+(.+?)\s*$", re.MULTILINE)
 
+# Parses Mermaid flowchart edges like `A[Label] --> B[Other]` (labels optional).
+_MM_EDGE_RE = re.compile(
+    r"([A-Za-z0-9_]+)(?:\[[^\]]*\])?\s*-->\s*([A-Za-z0-9_]+)(?:\[[^\]]*\])?"
+)
+# Parses Mermaid node label declarations like `A[External Attacker]`.
+_MM_NODE_RE = re.compile(r"([A-Za-z0-9_]+)\[([^\]]*)\]")
+
 
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
@@ -70,6 +77,60 @@ def build_report(markdown_body: str, system_name: str | None = None) -> str:
 def extract_mermaid_blocks(markdown: str) -> list[str]:
     """Return the body of every ```mermaid``` block found in ``markdown``."""
     return [m.group(1).strip() for m in _MERMAID_RE.finditer(markdown or "")]
+
+
+def strip_mermaid_blocks(
+    markdown: str,
+    note: str = "_(see the rendered Attack Path Diagram above)_",
+) -> str:
+    """Replace ```mermaid``` blocks with a short note (for in-app display).
+
+    Streamlit's ``st.markdown`` shows a mermaid code block as raw text, so we
+    remove it from the displayed body and render the diagram separately. The
+    exported report keeps the mermaid block intact (GitHub renders it).
+    """
+    return _MERMAID_RE.sub(note + "\n", markdown or "")
+
+
+def mermaid_to_dot(mermaid: str, rankdir: str = "TB") -> str:
+    """Convert a simple Mermaid ``flowchart`` into Graphviz DOT.
+
+    Streamlit renders DOT natively via ``st.graphviz_chart`` (offline, no CDN),
+    which is far more reliable than embedding Mermaid.js. Only the basic
+    ``A[Label] --> B[Label]`` flowchart syntax used by this app is supported.
+    """
+    labels: dict[str, str] = {}
+    edges: list[tuple[str, str]] = []
+    for line in (mermaid or "").splitlines():
+        line = line.strip()
+        if not line or line.lower().startswith(("flowchart", "graph")):
+            continue
+        for node_id, label in _MM_NODE_RE.findall(line):
+            labels[node_id] = label.strip()
+        for src, dst in _MM_EDGE_RE.findall(line):
+            edges.append((src, dst))
+
+    # Make sure every endpoint that appears in an edge has a label.
+    for src, dst in edges:
+        labels.setdefault(src, src)
+        labels.setdefault(dst, dst)
+
+    def esc(text: str) -> str:
+        return text.replace("\\", "\\\\").replace('"', '\\"')
+
+    out = [
+        "digraph AttackPath {",
+        f"  rankdir={rankdir};",
+        '  node [shape=box, style="rounded,filled", fillcolor="#eaf1fb", '
+        'color="#4178be", fontname="Helvetica"];',
+        '  edge [color="#c0392b", penwidth=1.4];',
+    ]
+    for node_id, label in labels.items():
+        out.append(f'  {node_id} [label="{esc(label)}"];')
+    for src, dst in edges:
+        out.append(f"  {src} -> {dst};")
+    out.append("}")
+    return "\n".join(out)
 
 
 def parse_report(markdown: str) -> dict:
