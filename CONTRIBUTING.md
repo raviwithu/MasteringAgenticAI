@@ -1,48 +1,42 @@
 # Contributing
 
-Thanks for your interest in improving **Mastering Agentic AI**! This repo is a
-teaching resource, so contributions that make the lessons clearer, more correct,
-or more runnable are very welcome.
-
-## Ground rules for the notebooks
-
-The pre-read notebooks are deliberately **self-contained and dependency-light** —
-every demo runs with only `numpy` and `matplotlib`, no API keys or model
-downloads. Please keep it that way:
-
-- Toy demos should run **offline** and finish in seconds.
-- Don't add heavy frameworks (LangChain, CrewAI, etc.) to a pre-read notebook —
-  those belong in the later hands-on labs.
-- Keep the house style: a "complete picture" diagram → concepts → a runnable
-  demo → "how this contributes to agentic AI" → key takeaways.
+Thanks for your interest in improving **Mastering Agentic AI**! This is a
+Dev Container starter workspace for building agentic AI labs. Contributions that
+make the environment more useful, reproducible, or easier to get started with are
+very welcome.
 
 ## Development setup
 
-1. Open the repo in the bundled **Dev Container** (VS Code → *Reopen in
-   Container*), or create a local environment:
-   ```bash
-   pip install jupyter nbconvert ipykernel numpy matplotlib ruff
-   ```
-2. Edit notebooks under [`Pre read/`](Pre%20read/).
+Open the repo in the bundled **Dev Container** (VS Code → *Reopen in Container*).
+The container provisions Python 3.12 plus the LLM SDKs and agent frameworks listed
+in [`requirements.txt`](requirements.txt), and starts JupyterLab on port 8888.
+
+For a quick local check without the container:
+
+```bash
+pip install ruff
+```
 
 ## Before opening a pull request
 
-CI lints the code and **executes every notebook**. Reproduce it locally:
+CI validates the container config and lints code. Reproduce it locally:
 
 ```bash
-# Lint for real errors (syntax / undefined names)
-ruff check .
+# 1. devcontainer.json must be valid JSON
+python -c "import json; json.load(open('.devcontainer/devcontainer.json'))"
 
-# Execute every notebook headlessly — must succeed end to end
-MPLBACKEND=Agg find . -name '*.ipynb' -not -path '*/.ipynb_checkpoints/*' \
-  -exec jupyter nbconvert --to notebook --execute --stdout \
-  --ExecutePreprocessor.timeout=120 {} \; > /dev/null
+# 2. the Jupyter startup script must have valid bash syntax
+bash -n .devcontainer/start-jupyter.sh
+
+# 3. Python must lint cleanly
+ruff check .
 ```
 
-Please also **clear large/binary cell outputs** before committing (re-running the
-notebook top to bottom and saving is fine) to keep diffs reviewable.
+If you add Python source or notebooks, keep them runnable and avoid committing
+large/binary outputs or secrets (`.env` is gitignored — never commit real keys).
 
 ## Reporting issues
 
-Open a GitHub issue describing the lesson, the cell, and what's wrong or unclear.
-Small fixes (typos, clearer wording) can go straight to a pull request.
+Open a GitHub issue describing what's wrong, what you expected, and how to
+reproduce it. Small fixes (typos, clearer wording) can go straight to a pull
+request.
