@@ -1,0 +1,16 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Generated reports (keep the folder, ignore its contents)
+outputs/*
+!outputs/.gitkeep
+
+# OS
+.DS_Store
