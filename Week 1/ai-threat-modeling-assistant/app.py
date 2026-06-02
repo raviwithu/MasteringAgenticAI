@@ -21,6 +21,7 @@ from threat_model.prompts import build_threat_model_prompt
 from threat_model.report import (
     attack_path_from_markdown,
     create_markdown_report,
+    parse_report,
     report_filename,
     save_report,
 )
@@ -135,6 +136,32 @@ tab_input, tab_result, tab_export = st.tabs(
 # Tab 1 — Input
 # --------------------------------------------------------------------------- #
 with tab_input:
+    # --- Import an existing report (same format as the Export tab produces) ---
+    # Placed before the field widgets so it can repopulate the system name.
+    with st.expander("📥 Import a saved report (.md)", expanded=False):
+        uploaded = st.file_uploader(
+            "Upload a previously exported Markdown report",
+            type=["md", "markdown"],
+            key="import_file",
+            help="Loads the report into the Generated Threat Model and Export tabs.",
+        )
+        if uploaded is not None and st.button("Load imported report", key="do_import"):
+            try:
+                text = uploaded.getvalue().decode("utf-8")
+            except UnicodeDecodeError:
+                st.error("That file isn't valid UTF-8 text. Please upload a .md report.")
+            else:
+                if not text.strip():
+                    st.error("The uploaded file is empty.")
+                else:
+                    st.session_state["report_md"] = text
+                    meta = parse_report(text)
+                    if meta.get("system_name"):
+                        st.session_state["system_name"] = meta["system_name"]
+                    name = meta.get("system_name") or "the imported report"
+                    st.success(f"Imported **{name}**. Open the **Generated Threat "
+                               "Model** or **Export** tab to view it.")
+
     c1, c2, _ = st.columns([1, 1, 3])
     c1.button("📋 Load Sample", on_click=load_sample, use_container_width=True)
     c2.button("🧹 Clear", on_click=clear_fields, use_container_width=True)

@@ -17,6 +17,11 @@ OUTPUT_DIR = Path(__file__).resolve().parent.parent / "outputs"
 # Matches a fenced ```mermaid ... ``` block and captures its body.
 _MERMAID_RE = re.compile(r"```mermaid\s*\n(.*?)```", re.DOTALL)
 
+# Matches the "| **System** | <name> |" metadata row written by create_markdown_report.
+_SYSTEM_ROW_RE = re.compile(r"^\|\s*\*\*System\*\*\s*\|\s*(.+?)\s*\|", re.MULTILINE)
+# Matches the "# Threat Model — <name>" title written by create_markdown_report.
+_TITLE_RE = re.compile(r"^#\s+Threat Model\s+[—-]\s+(.+?)\s*$", re.MULTILINE)
+
 
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
@@ -65,6 +70,30 @@ def build_report(markdown_body: str, system_name: str | None = None) -> str:
 def extract_mermaid_blocks(markdown: str) -> list[str]:
     """Return the body of every ```mermaid``` block found in ``markdown``."""
     return [m.group(1).strip() for m in _MERMAID_RE.finditer(markdown or "")]
+
+
+def parse_report(markdown: str) -> dict:
+    """Parse a report previously produced by :func:`create_markdown_report`.
+
+    Recovers the system name from the metadata table (falling back to the title),
+    so an imported ``.md`` file can repopulate the app. Plain Markdown that wasn't
+    produced by this tool is still accepted — ``system_name`` is simply ``None``.
+
+    Args:
+        markdown: The full Markdown text of an exported report.
+
+    Returns:
+        ``{"system_name": str | None, "markdown": str}``.
+    """
+    md = markdown or ""
+    name = None
+    match = _SYSTEM_ROW_RE.search(md) or _TITLE_RE.search(md)
+    if match:
+        candidate = match.group(1).strip()
+        # "Threat Model" is the default title used when no name was given.
+        if candidate and candidate.lower() != "threat model":
+            name = candidate
+    return {"system_name": name, "markdown": md}
 
 
 def _node_label(text: str) -> str:

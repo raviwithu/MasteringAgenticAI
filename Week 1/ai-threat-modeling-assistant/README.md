@@ -32,6 +32,8 @@ spirit with ISO/SAE 21434 and UNECE R155.
 - 🔀 **Mermaid attack-path diagram** rendered in-app and embedded in the report.
 - 📋 **Load Sample Vehicle Gateway System** to try it instantly.
 - 📤 Export: **Download .md** or **Save to `outputs/`**.
+- 📥 **Import** a previously exported `.md` report to re-view, re-render its
+  diagram, and re-export — the system name is recovered automatically.
 - 🧰 **Offline mock mode** — develop and demo with no API key or network.
 - 🗂️ Clean, tabbed UI (Input · Generated Threat Model · Export) with a sidebar guide.
 
