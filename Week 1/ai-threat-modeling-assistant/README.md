@@ -62,6 +62,7 @@ ai-threat-modeling-assistant/
 │   ├── llm_client.py       # generate_threat_model(...) — OpenAI or offline mock
 │   ├── report.py           # create_markdown_report(...) / save_report(...) / mermaid
 │   └── sample_data.py      # SAMPLE_SYSTEM
+├── tests/                  # automated functional flow tests (pytest)
 └── outputs/                # exported reports (gitignored)
 ```
 
@@ -76,6 +77,20 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env        # works as-is in mock mode
 ```
+
+## Testing
+
+An automated **functional flow test** exercises the whole pipeline offline
+(mock LLM, no API key): build prompt → generate → assemble report → **export to
+a file → check the file → import that same file back**. Run it after any code
+change:
+
+```bash
+pip install -r requirements-dev.txt   # pytest
+pytest                                # runs tests/ (USE_MOCK_LLM forced on)
+```
+
+The same suite runs in CI on every push/PR.
 
 ## How to run
 
