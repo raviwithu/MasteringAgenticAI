@@ -101,8 +101,12 @@ with st.sidebar:
 # Header
 # --------------------------------------------------------------------------- #
 st.title("🛡️ AI Threat Modeling Assistant")
-st.caption("Turn a connected-vehicle system description into a structured, "
-           "STRIDE-based threat model with an attack-path diagram.")
+st.markdown(
+    "**This tool turns a plain-language description of a connected-vehicle system "
+    "into a structured security threat model.** It identifies assets, trust "
+    "boundaries, STRIDE threats, attack paths (with a diagram), security "
+    "requirements, and test cases — ready to review and export as Markdown."
+)
 
 tab_input, tab_result, tab_export = st.tabs(
     ["📝 Input", "📊 Generated Threat Model", "📤 Export"]
