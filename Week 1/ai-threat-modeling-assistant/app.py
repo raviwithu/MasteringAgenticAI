@@ -66,12 +66,21 @@ def clear_fields() -> None:
 with st.sidebar:
     st.header("🛡️ How to use")
     st.markdown(
-        "1. Open the **Input** tab.\n"
-        "2. Paste a **system description** (or click *Load Sample*).\n"
-        "3. Optionally add system name, business impact, data, interfaces.\n"
-        "4. Click **Generate Threat Model**.\n"
-        "5. Review the **Generated Threat Model** tab.\n"
-        "6. Download or save from the **Export** tab."
+        "**Generate a new threat model**\n"
+        "1. Open the **📝 Input** tab.\n"
+        "2. Paste a **system description**, or click **📋 Load Sample**.\n"
+        "3. *(Optional)* add system name, business impact, data handled, and "
+        "external interfaces — these sharpen the result.\n"
+        "4. Click **🚀 Generate Threat Model** and wait for the success message.\n"
+        "5. Open **📊 Generated Threat Model** to review the report and the "
+        "rendered **attack-path diagram**.\n"
+        "6. Go to **📤 Export** to **download** the `.md` or **save** it to "
+        "`outputs/`."
+    )
+    st.markdown(
+        "**Reopen a saved report**\n"
+        "- In the **📝 Input** tab, expand **📥 Import a saved report (.md)**, "
+        "upload a previously exported file, and click **Load imported report**."
     )
     st.divider()
     mode = active_mode()
@@ -81,8 +90,8 @@ with st.sidebar:
     else:
         st.success("**LLM mode:** OpenAI\n\nUsing your configured API key.")
     st.caption(
-        "Sections: Overview · Assets · Trust Boundaries · Threats · Attack Paths "
-        "(+ Mermaid diagram) · Requirements · Test Cases · Assumptions · "
+        "Report sections: Overview · Assets · Trust Boundaries · Threats · "
+        "Attack Paths (+ diagram) · Requirements · Test Cases · Assumptions · "
         "Residual Risks."
     )
     st.caption("⚠️ Output is a starting point for human review, not a formal "
