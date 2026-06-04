@@ -16,5 +16,10 @@ venv/
 outputs/*
 !outputs/.gitkeep
 
+# Large media / recordings (host these elsewhere, not in git)
+*.mov
+*.mp4
+*.zip
+
 # OS
 .DS_Store
