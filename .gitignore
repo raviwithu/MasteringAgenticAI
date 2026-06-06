@@ -18,5 +18,8 @@ chroma/
 .chroma/
 *.faiss
 
+# Local-only theory folder (not pushed)
+Week1_Theory/
+
 # OS
 .DS_Store
