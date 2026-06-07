@@ -18,12 +18,18 @@ from .report import (
     strip_mermaid_blocks,
 )
 from .sample_data import SAMPLE_SYSTEM
+from .service import generate_threat_model_report
+
+# Note: `agent` / `agent_tools` are intentionally NOT imported here — they pull in
+# LangChain. Import them directly (``from threat_model.agent import run_agent``)
+# so the rest of the package stays usable without LangChain installed.
 
 __all__ = [
     "SECTION_ORDER",
     "build_threat_model_prompt",
     "active_mode",
     "generate_threat_model",
+    "generate_threat_model_report",
     "attack_path_from_markdown",
     "build_attack_path_diagram",
     "build_report",

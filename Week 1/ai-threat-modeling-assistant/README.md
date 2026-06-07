@@ -35,6 +35,9 @@ devices — and applies established practice (STRIDE, OWASP, NIST).
 - 📥 **Import** a previously exported `.md` report to re-view, re-render its
   diagram, and re-export — the system name is recovered automatically.
 - 🧰 **Offline mock mode** — develop and demo with no API key or network.
+- 🤖 **LangChain tool calling** — in OpenAI mode the Generate button runs through a
+  bound `generate_threat_model` tool (the model calls the tool); mock mode falls
+  back to direct generation.
 - 🗂️ Clean, tabbed UI (Input · Generated Threat Model · Export) with a sidebar guide.
 
 ## Tech stack
@@ -44,6 +47,7 @@ devices — and applies established practice (STRIDE, OWASP, NIST).
 | Language | Python 3.12 |
 | UI | Streamlit |
 | LLM | OpenAI API (or built-in offline mock) |
+| Tool calling | LangChain (`langchain-openai`, `langchain-core`) via `bind_tools` |
 | Config | python-dotenv, pydantic |
 | Diagrams | Graphviz in-app (`st.graphviz_chart`); Mermaid in the exported Markdown |
 | Export | Markdown |

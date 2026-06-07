@@ -3,3 +3,7 @@ streamlit>=1.38
 openai>=1.40
 python-dotenv>=1.0
 pydantic>=2.7
+
+# LangChain tool calling (used in OpenAI mode to drive generation via bind_tools)
+langchain-openai>=0.2
+langchain-core>=0.3

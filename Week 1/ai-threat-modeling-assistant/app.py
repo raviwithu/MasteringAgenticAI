@@ -13,17 +13,17 @@ from __future__ import annotations
 
 import streamlit as st
 
-from threat_model.llm_client import active_mode, generate_threat_model
-from threat_model.prompts import build_threat_model_prompt
+from threat_model.agent import run_agent
+from threat_model.llm_client import active_mode
 from threat_model.report import (
     attack_path_from_markdown,
-    create_markdown_report,
     mermaid_to_dot,
     parse_report,
     report_filename,
     save_report,
     strip_mermaid_blocks,
 )
+from threat_model.service import generate_threat_model_report
 from threat_model.sample_data import SAMPLE_SYSTEM
 
 # --------------------------------------------------------------------------- #
@@ -174,18 +174,25 @@ with tab_input:
             st.error("Please enter a system description before generating.")
         else:
             inputs = {key: st.session_state[key] for key in _FIELD_DEFAULTS}
-            with st.spinner("Analyzing system and generating threat model…"):
-                prompt = build_threat_model_prompt(
-                    system_name=inputs["system_name"],
-                    description=inputs["description"],
-                    business_impact=inputs["business_impact"],
-                    data_handled=inputs["data_handled"],
-                    external_interfaces=inputs["external_interfaces"],
-                )
-                raw = generate_threat_model(prompt, system_inputs=inputs)
-                st.session_state["report_md"] = create_markdown_report(
-                    inputs["system_name"], raw
-                )
+            report_md = None
+            if active_mode() == "openai":
+                # OpenAI mode: drive generation through the LangChain tool-calling
+                # agent — it calls the `generate_threat_model` tool.
+                with st.spinner("Running tool-calling agent to generate the threat model…"):
+                    try:
+                        result = run_agent(inputs)
+                        report_md = result.get("report_md")
+                        if not report_md:
+                            st.warning("Agent did not call the tool; using direct "
+                                       "generation instead.")
+                    except Exception as exc:  # noqa: BLE001 - degrade gracefully
+                        st.warning(f"Agent path failed ({type(exc).__name__}); "
+                                   "using direct generation instead.")
+            if report_md is None:
+                # Mock mode (no tool calling) or agent fallback: generate directly.
+                with st.spinner("Analyzing system and generating threat model…"):
+                    report_md = generate_threat_model_report(**inputs)["report_md"]
+            st.session_state["report_md"] = report_md
             st.success("Threat model generated! Open the "
                        "**Generated Threat Model** tab to review it.")
             st.balloons()
