@@ -7,3 +7,13 @@ pydantic>=2.7
 # LangChain tool calling (used in OpenAI mode to drive generation via bind_tools)
 langchain-openai>=0.2
 langchain-core>=0.3
+
+# Reference knowledge base (threat-modeling books → ChromaDB, GPU embeddings).
+# Needed only for the reference-grounding feature (ingest_references.py).
+# RTX 5090: install a CUDA 12.8+ torch build, e.g.
+#   pip install torch --index-url https://download.pytorch.org/whl/cu128
+chromadb>=0.5
+sentence-transformers>=3.0
+torch>=2.4
+pypdf>=4.0
+langchain-text-splitters>=0.3

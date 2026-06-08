@@ -49,12 +49,28 @@ def generate_threat_model_report(
         "external_interfaces": external_interfaces,
     }
     logger.info("Generating threat model for system '%s'", system_name or "(unnamed)")
+
+    # Ground the analysis in the reference books (best-effort, OpenAI mode only —
+    # the offline mock ignores the prompt, so retrieval would be wasted there).
+    reference_context = ""
+    try:
+        from .llm_client import active_mode
+        if active_mode() == "openai":
+            from .references import retrieve_reference_context
+            reference_context = retrieve_reference_context(description)
+            if reference_context:
+                logger.info("Injected %d chars of reference context.",
+                            len(reference_context))
+    except Exception as exc:  # noqa: BLE001 - reference grounding is optional
+        logger.warning("Skipping reference context: %s", exc)
+
     prompt = build_threat_model_prompt(
         system_name=system_name,
         description=description,
         business_impact=business_impact,
         data_handled=data_handled,
         external_interfaces=external_interfaces,
+        reference_context=reference_context,
     )
     raw = generate_threat_model(prompt, system_inputs=inputs)
     report_md = create_markdown_report(system_name, raw)

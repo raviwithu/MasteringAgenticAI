@@ -32,6 +32,7 @@ def build_threat_model_prompt(
     business_impact: str = "",
     data_handled: str = "",
     external_interfaces: str = "",
+    reference_context: str = "",
 ) -> str:
     """Build the LLM prompt for generating a structured threat model.
 
@@ -41,12 +42,24 @@ def build_threat_model_prompt(
         business_impact: Optional business-impact context.
         data_handled: Optional description of the data the system processes.
         external_interfaces: Optional list of external interfaces / entry points.
+        reference_context: Optional excerpts from threat-modeling reference books
+            (retrieved from the ChromaDB index) to ground the analysis.
 
     Returns:
         A complete prompt string ready to send to the LLM.
     """
     system_name = (system_name or "Unnamed System").strip()
     description = (description or "").strip()
+
+    reference_block = ""
+    if reference_context and reference_context.strip():
+        reference_block = (
+            "\n## Reference material (authoritative threat-modeling literature)\n"
+            "Use the following excerpts from established threat-modeling books to "
+            "inform and justify your analysis where relevant. Prefer their "
+            "terminology and techniques; do not quote them verbatim at length.\n\n"
+            f"{reference_context.strip()}\n"
+        )
 
     numbered_sections = "\n".join(
         f"{i}. {name}" for i, name in enumerate(SECTION_ORDER, start=1)
@@ -75,7 +88,7 @@ Denial of service, Elevation of privilege).
 
 ### System description
 {description if description else "(no description provided)"}
-
+{reference_block}
 ## Your task
 
 Produce a thorough but concise **threat model** for the system above. Respond in

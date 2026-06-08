@@ -24,7 +24,11 @@ threat_model/
   service.py                # generate_threat_model_report(...) — single API method (prompt→generate→report)
   agent_tools.py            # ThreatModelInput + make_threat_model_tool() — the LangChain StructuredTool
   agent.py                  # run_agent(inputs) — bind_tools tool-calling that calls the tool
+  references.py             # ReferenceKB (PDF→chunk→GPU embed→ChromaDB) + retrieve_reference_context()
   sample_data.py            # SAMPLE_SYSTEM (Customer Web Portal)
+ingest_references.py        # CLI to build the reference index from Reference/Books PDFs
+test_reference_ingest.ipynb # standalone notebook to test the ingest pipeline
+data/reference_chroma/      # persistent reference vector store (gitignored)
 tests/                      # pytest functional-flow test (offline, mock)
 docs/BUILD.md               # build writeup (overview, prompts, iterations, learnings)
 outputs/                    # exported .md reports (gitignored)
@@ -48,6 +52,25 @@ pytest                                # tests/ forces mock mode (no API cost)
 ```
 The key test mirrors the user journey: build prompt → generate → export to file →
 verify file → import the same file back.
+
+## Reference knowledge base (threat-modeling books → ChromaDB, GPU)
+- `references.py` ingests the PDFs in `Reference/Books` (auto-discovered upward, or
+  `REFERENCE_BOOKS_DIR`): PDF → chunk (LangChain) → **local GPU embeddings**
+  (`bge-small`, cuda auto-detect) → persistent **ChromaDB** (`data/reference_chroma`,
+  collection `threat_modeling_refs`). Incremental via per-file hash in
+  `data/reference_index_state.json`.
+- Build it: `python ingest_references.py` (`--force`, `--stats`, `--search "..."`),
+  or run `test_reference_ingest.ipynb`.
+- **Gotcha:** one book is a saved HTTP *multipart upload* (starts with a `-----`
+  boundary, not `%PDF`); `_pdf_stream()` strips the wrapper. Per-file read errors
+  are skipped, not fatal.
+- **Grounding:** in **OpenAI mode**, `service.generate_threat_model_report()` calls
+  `references.retrieve_reference_context(description)` and injects top passages into
+  the prompt (`build_threat_model_prompt(..., reference_context=...)`). Best-effort:
+  if deps/index are missing it silently proceeds without grounding. Skipped in mock
+  mode (the mock ignores the prompt).
+- Heavy deps (chromadb, sentence-transformers, torch, pypdf) are imported lazily —
+  the base app runs without them; references are just unavailable until installed.
 
 ## Generation flow (Tab 1 "Generate" button)
 - **OpenAI mode:** button → `agent.run_agent(inputs)` → LangChain **tool calling**

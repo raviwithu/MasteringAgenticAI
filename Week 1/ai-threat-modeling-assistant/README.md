@@ -38,6 +38,9 @@ devices — and applies established practice (STRIDE, OWASP, NIST).
 - 🤖 **LangChain tool calling** — in OpenAI mode the Generate button runs through a
   bound `generate_threat_model` tool (the model calls the tool); mock mode falls
   back to direct generation.
+- 📚 **Reference grounding (RAG)** — threat-modeling books are indexed into a local
+  ChromaDB (GPU embeddings); relevant passages are injected into the prompt at
+  generation time.
 - 🗂️ Clean, tabbed UI (Input · Generated Threat Model · Export) with a sidebar guide.
 
 ## Tech stack
@@ -109,6 +112,24 @@ streamlit run app.py
 Streamlit prints a local URL (usually http://localhost:8501). Open it, go to the
 **Input** tab, click **Load Sample** (or paste your own description), then
 **Generate Threat Model**.
+
+## Reference knowledge base (book grounding)
+
+Index the threat-modeling books so generation can cite established literature:
+
+```bash
+# Put PDFs in a Reference/Books folder (auto-discovered), or set REFERENCE_BOOKS_DIR.
+# RTX 5090: pip install torch --index-url https://download.pytorch.org/whl/cu128
+python ingest_references.py            # PDF → chunk → GPU embeddings → ChromaDB
+python ingest_references.py --stats
+python ingest_references.py --search "tampering with messages in transit"
+```
+
+PDFs are chunked, embedded locally (`bge-small`, GPU auto-detected) and stored in
+`data/reference_chroma/` (collection `threat_modeling_refs`, incremental). In
+**OpenAI mode**, the Generate flow retrieves the most relevant passages and injects
+them into the prompt; if the index/deps are absent it simply generates without
+grounding. Test it standalone with `test_reference_ingest.ipynb`.
 
 ## Environment variables
 
