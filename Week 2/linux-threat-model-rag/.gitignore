@@ -1,0 +1,7 @@
+# Generated stores (rebuilt by the notebook: ChromaDB, SQLite, ingestion state, report)
+data/
+
+# Secrets / caches
+.env
+__pycache__/
+.ipynb_checkpoints/

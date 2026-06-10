@@ -1,0 +1,20 @@
+# Graph RAG with Neo4j — dependencies
+
+# Neo4j driver
+neo4j>=5.20
+
+# Local embeddings (GPU auto-detected). RTX 5090 (Blackwell): install a CUDA 12.8+
+# torch build:  pip install torch --index-url https://download.pytorch.org/whl/cu128
+sentence-transformers>=3.0
+torch>=2.4
+
+# PDF loading + chunking (the threat-modeling books)
+pypdf>=4.0
+langchain-text-splitters>=0.3
+
+# Tables in the notebook
+pandas>=2.0
+
+# Optional: final LLM answer step (skipped if OPENAI_API_KEY is unset)
+openai>=1.40
+python-dotenv>=1.0

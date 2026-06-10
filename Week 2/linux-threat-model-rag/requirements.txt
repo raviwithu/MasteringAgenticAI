@@ -1,0 +1,23 @@
+# Linux System Threat Model — RAG + traceable TARA
+
+# Vector store
+chromadb>=0.5
+
+# Local embeddings + reranker (GPU auto-detected).
+# RTX 5090 (Blackwell): pip install torch --index-url https://download.pytorch.org/whl/cu128
+sentence-transformers>=3.0
+torch>=2.4
+
+# PDF loading + chunking
+pypdf>=4.0
+langchain-text-splitters>=0.3
+
+# Tables + relationship graph
+pandas>=2.0
+matplotlib>=3.7
+
+# LLM entity generation (set OPENAI_API_KEY)
+openai>=1.40
+python-dotenv>=1.0
+
+# SQLite ships with Python's stdlib (sqlite3) — no extra install.

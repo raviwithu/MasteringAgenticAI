@@ -17,3 +17,8 @@ sentence-transformers>=3.0
 torch>=2.4
 pypdf>=4.0
 langchain-text-splitters>=0.3
+
+# Optional OCR fallback for scanned/image-only PDFs (REFERENCE_OCR=auto|always).
+# Also needs the system binaries tesseract-ocr and ghostscript:
+#   sudo apt-get install -y tesseract-ocr ghostscript
+ocrmypdf>=16.0

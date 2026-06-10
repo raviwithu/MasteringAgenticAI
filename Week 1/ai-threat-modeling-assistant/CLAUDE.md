@@ -14,8 +14,12 @@ Requirements, Security Test Cases, Assumptions, Residual Risks.
 
 ## Layout
 ```
-app.py                      # Streamlit UI: sidebar + Input/Generated/Export tabs
+app.py                      # Streamlit UI (home page): sidebar + Input/Generated/Export tabs
                             # (no config.py — settings come from .env)
+pages/
+  1_TARA_Flow_Validator.py  # multipage page: guided ISO/SAE 21434 TARA flow; each stage
+                            #   is checked vs the reference KB (local retrieval always;
+                            #   LLM verdict in OpenAI mode). Reuses references.ReferenceKB.
 threat_model/
   prompts.py                # build_threat_model_prompt(...) — the LLM instruction (STRIDE, 9 sections)
   llm_client.py             # generate_threat_model(): OpenAI OR offline mock; active_mode()
@@ -64,6 +68,13 @@ verify file → import the same file back.
 - **Gotcha:** one book is a saved HTTP *multipart upload* (starts with a `-----`
   boundary, not `%PDF`); `_pdf_stream()` strips the wrapper. Per-file read errors
   are skipped, not fatal.
+- **OCR fallback:** a scanned/image-only PDF (no extractable text) is auto-OCR'd by
+  `_ocr_pdf()` (`ocrmypdf` + system `tesseract-ocr`/`ghostscript`, **optional dep**)
+  and re-read, so it still gets indexed. Results cache by content hash in
+  `data/ocr_cache/` (gitignored) → OCR runs once per file. Control via
+  `REFERENCE_OCR` = `auto` (default; OCR only when no text) · `always` · `off`,
+  and `REFERENCE_OCR_LANG` (default `eng`). If `ocrmypdf` isn't installed, the file
+  is skipped with a hint (graceful — base app unaffected).
 - **Grounding:** in **OpenAI mode**, `service.generate_threat_model_report()` calls
   `references.retrieve_reference_context(description)` and injects top passages into
   the prompt (`build_threat_model_prompt(..., reference_context=...)`). Best-effort:

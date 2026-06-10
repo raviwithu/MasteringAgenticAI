@@ -43,6 +43,11 @@ QUERY_INSTRUCTION = os.getenv(
     "REFERENCE_QUERY_INSTRUCTION",
     "Represent this sentence for searching relevant passages: ",
 )
+# OCR fallback for image-only (scanned) PDFs — "auto" (OCR only when a PDF has no
+# extractable text), "always" (force OCR every PDF), or "off" (never OCR).
+OCR_MODE = os.getenv("REFERENCE_OCR", "auto").strip().lower()
+OCR_LANG = os.getenv("REFERENCE_OCR_LANG", "eng")
+OCR_CACHE_DIR = Path(os.getenv("REFERENCE_OCR_CACHE_DIR", str(_DATA_DIR / "ocr_cache")))
 
 
 def resolve_books_dir() -> Path | None:
@@ -145,15 +150,100 @@ def _pdf_stream(path: Path) -> io.BytesIO:
     return io.BytesIO(data)
 
 
+def _ocr_pdf(path: Path) -> Path | None:
+    """Run OCR on a (scanned/image-only) PDF, returning a path to a searchable copy.
+
+    Best-effort: requires the optional ``ocrmypdf`` package (plus a system
+    Tesseract + Ghostscript). Results are cached by source content hash in
+    ``OCR_CACHE_DIR`` so a PDF is only OCR'd once. Returns ``None`` (and logs a
+    hint) if OCR is unavailable or fails, so ingestion degrades gracefully.
+    """
+    if OCR_MODE == "off":
+        return None
+    try:
+        import ocrmypdf  # noqa: F401 - optional dependency
+    except ImportError:
+        logger.warning(
+            "%s has no extractable text and 'ocrmypdf' is not installed; skipping. "
+            "Install it (`pip install ocrmypdf` + system tesseract-ocr & ghostscript) "
+            "or set REFERENCE_OCR=off to silence this.", path.name,
+        )
+        return None
+
+    OCR_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    out = OCR_CACHE_DIR / f"{_file_hash(path)}.pdf"
+    if out.exists():
+        logger.info("Using cached OCR for %s (%s)", path.name, out.name)
+        return out
+
+    # ocrmypdf works on files, not streams: materialize a clean PDF if the source
+    # is wrapped (e.g. a saved multipart upload). Otherwise OCR the original.
+    raw = path.read_bytes()
+    if raw[:5] == b"%PDF-":
+        src = path
+        tmp_src = None
+    else:
+        tmp_src = OCR_CACHE_DIR / f"{_file_hash(path)}.src.pdf"
+        tmp_src.write_bytes(_pdf_stream(path).getvalue())
+        src = tmp_src
+
+    logger.info("No extractable text in %s; running OCR (lang=%s, this can take a "
+                "while)…", path.name, OCR_LANG)
+    # ocrmypdf's deps (fontTools, pikepdf) are extremely chatty at INFO — keep the
+    # ingest log readable by raising them to WARNING.
+    for noisy in ("fontTools", "fontTools.subset", "pikepdf", "PIL"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
+    try:
+        import ocrmypdf
+        ocrmypdf.ocr(
+            str(src), str(out), language=OCR_LANG, force_ocr=True,
+            progress_bar=False,
+        )
+    except Exception as exc:  # noqa: BLE001 - OCR is best-effort; never abort ingest
+        logger.error("OCR failed for %s: %s; skipping.", path.name, exc)
+        if out.exists():
+            try:
+                out.unlink()
+            except OSError:
+                pass
+        return None
+    finally:
+        if tmp_src is not None:
+            try:
+                tmp_src.unlink()
+            except OSError:
+                pass
+    logger.info("OCR complete for %s -> %s", path.name, out.name)
+    return out
+
+
+def _read_page_texts(reader) -> list[str]:
+    """Per-page extracted text (stripped); index 0 == page 1."""
+    return [(p.extract_text() or "").strip() for p in reader.pages]
+
+
 def _load_pdf_chunks(path: Path, splitter) -> list[dict[str, Any]]:
-    """Extract text per page and split into chunks with page metadata."""
+    """Extract text per page and split into chunks with page metadata.
+
+    If a PDF yields no extractable text (a scanned/image-only book) and OCR is
+    enabled (``REFERENCE_OCR`` != "off"), it is OCR'd and re-read so its content
+    is still indexed. With ``REFERENCE_OCR=always`` every PDF is OCR'd.
+    """
     from pypdf import PdfReader
 
     reader = PdfReader(_pdf_stream(path))
     title = path.stem
+    page_texts = _read_page_texts(reader)
+
+    need_ocr = OCR_MODE == "always" or (OCR_MODE != "off" and not any(page_texts))
+    if need_ocr:
+        ocr_path = _ocr_pdf(path)
+        if ocr_path is not None:
+            reader = PdfReader(str(ocr_path))
+            page_texts = _read_page_texts(reader)
+
     chunks: list[dict[str, Any]] = []
-    for page_no, page in enumerate(reader.pages, start=1):
-        text = (page.extract_text() or "").strip()
+    for page_no, text in enumerate(page_texts, start=1):
         if not text:
             continue
         for j, piece in enumerate(splitter.split_text(text)):

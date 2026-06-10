@@ -42,6 +42,13 @@ devices — and applies established practice (STRIDE, OWASP, NIST).
   ChromaDB (GPU embeddings); relevant passages are injected into the prompt at
   generation time.
 - 🗂️ Clean, tabbed UI (Input · Generated Threat Model · Export) with a sidebar guide.
+- 🧭 **TARA Flow Validator** (multipage — see the sidebar) — a guided ISO/SAE 21434
+  flow (Item Definition → Assets → Damage Scenarios → Impact Rating → Threats →
+  Attack Vectors → Attack Feasibility → Risk Value → Risk Treatment → Goals/
+  Requirements → Test Cases). As you fill each stage it **checks it against the
+  knowledge base**: local retrieval shows the expected structure (works offline),
+  and in OpenAI mode an LLM verdict reports what's present, what's missing, and
+  suggestions with citations. Export the worksheet as Markdown.
 
 ## Tech stack
 
@@ -130,6 +137,14 @@ PDFs are chunked, embedded locally (`bge-small`, GPU auto-detected) and stored i
 **OpenAI mode**, the Generate flow retrieves the most relevant passages and injects
 them into the prompt; if the index/deps are absent it simply generates without
 grounding. Test it standalone with `test_reference_ingest.ipynb`.
+
+**Scanned/image-only PDFs** (no extractable text) are automatically **OCR'd** before
+indexing — install the optional `ocrmypdf` plus system `tesseract-ocr` and
+`ghostscript` (`sudo apt-get install -y tesseract-ocr ghostscript`). OCR output is
+cached by content hash in `data/ocr_cache/` so each book is OCR'd only once. Tune
+with `REFERENCE_OCR` (`auto` / `always` / `off`, default `auto`) and
+`REFERENCE_OCR_LANG` (default `eng`). Without `ocrmypdf`, such PDFs are skipped with
+a hint and the rest still index.
 
 ## Environment variables
 

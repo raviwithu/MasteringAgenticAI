@@ -17,6 +17,10 @@ venv/
 chroma/
 .chroma/
 *.faiss
+data/
+
+# Source corpora (copyrighted books — kept out of the repo; supply your own)
+Week 2/Data/
 
 # Local-only theory folder (not pushed)
 Week1_Theory/
